@@ -99,6 +99,9 @@ def download_all(urls):
         else:
             progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
                                         text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+        # إعادة تفعيل زر التحميل وإلغاء تفعيل زر التوقف بعد الانتهاء
+        download_button.config(state=tk.NORMAL, text="Download Videos")
+        stop_button.config(state=tk.DISABLED)
     root.after(0, show_done)
     if stop_downloading:
         messagebox.showinfo("Download stopped", "Download process has been stopped.\nتم إيقاف عملية التحميل.")
@@ -128,6 +131,9 @@ def start_download():
     progress_rect = progress_canvas.create_rectangle(0, 0, 0, PROGRESS_BAR_HEIGHT, fill="green", width=0)
     update_progress(0)
     stop_downloading = False
+    # تعطيل زر التحميل وتغيير نصه وتفعيل زر التوقف
+    download_button.config(state=tk.DISABLED, text="Downloading...")
+    stop_button.config(state=tk.NORMAL)
     # بدء التحميل في خيط منفصل
     threading.Thread(target=download_all, args=(valid_urls,), daemon=True).start()
 
@@ -137,6 +143,8 @@ def stop_download():
     """
     global stop_downloading
     stop_downloading = True
+    # تعطيل زر التوقف عند الضغط عليه
+    stop_button.config(state=tk.DISABLED)
 
 def open_github():
     """
@@ -173,8 +181,8 @@ created_label.grid(row=0, column=0, sticky="w")
 download_button = tk.Button(bottom_frame, text="Download Videos", command=start_download)
 download_button.grid(row=0, column=1, padx=5)
 
-# زر إيقاف التحميل
-stop_button = tk.Button(bottom_frame, text="Stop Download", command=stop_download)
+# زر إيقاف التحميل (مبدئيًا غير مفعل)
+stop_button = tk.Button(bottom_frame, text="Stop Download", command=stop_download, state=tk.DISABLED)
 stop_button.grid(row=0, column=2, padx=5)
 
 # زر GitHub
