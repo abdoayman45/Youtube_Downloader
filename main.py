@@ -12,6 +12,7 @@ PROGRESS_BAR_HEIGHT = 40  # حوالي 1 سم
 total_videos = 0           # عدد الفيديوهات الكلي
 current_video_index = 0    # رقم الفيديو الحالي (من 0)
 stop_downloading = False   # متغير لإيقاف التحميل عند الطلب
+download_errors = False    # متغير لتحديد حدوث أخطاء أثناء التحميل
 
 def update_progress(overall_progress):
     """
@@ -23,9 +24,14 @@ def update_progress(overall_progress):
     # حذف النص السابق وإضافة النص الجديد
     progress_canvas.delete("progress_text")
     percentage = int(overall_progress * 100)
-    progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                text=f"{percentage}%", fill="white", font=("Helvetica", 14, "bold"),
-                                tag="progress_text")
+    progress_canvas.create_text(
+        PROGRESS_BAR_WIDTH // 2,
+        PROGRESS_BAR_HEIGHT // 2, 
+        text=f"{percentage}%",
+        fill="white",
+        font=("Helvetica", 14, "bold"),
+        tag="progress_text"
+    )
     progress_canvas.update_idletasks()
 
 def download_video_with_progress(url, video_index, total):
@@ -70,6 +76,8 @@ def download_video_with_progress(url, video_index, total):
             # إذا كان سبب الإيقاف من المستخدم فلا نقوم بإظهار رسالة خطأ
             return
         else:
+            global download_errors
+            download_errors = True
             print(f"Error occurred while loading {url}: {str(e)}")
 
 def download_all(urls):
@@ -90,21 +98,46 @@ def download_all(urls):
                 if str(e) == "StopDownload":
                     break
                 else:
+                    global download_errors
+                    download_errors = True
                     print(f"Error occurred while loading {clean_url}: {str(e)}")
     def show_done():
         progress_canvas.delete("progress_text")
         if stop_downloading:
-            progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                          text="Download Stopped.\nتم إيقاف التحميل.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+            progress_canvas.create_text(
+                PROGRESS_BAR_WIDTH // 2,
+                PROGRESS_BAR_HEIGHT // 2, 
+                text="Download Stopped.\nتم إيقاف التحميل.",
+                fill="white",
+                font=("Helvetica", 12, "bold"),
+                tag="progress_text"
+            )
+        elif download_errors:
+            progress_canvas.create_text(
+                PROGRESS_BAR_WIDTH // 2,
+                PROGRESS_BAR_HEIGHT // 2, 
+                text="Some videos failed to download.\nفشل تحميل بعض الفيديوهات.",
+                fill="white",
+                font=("Helvetica", 12, "bold"),
+                tag="progress_text"
+            )
         else:
-            progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                          text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+            progress_canvas.create_text(
+                PROGRESS_BAR_WIDTH // 2,
+                PROGRESS_BAR_HEIGHT // 2, 
+                text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.",
+                fill="white",
+                font=("Helvetica", 12, "bold"),
+                tag="progress_text"
+            )
         # إعادة تفعيل زر التحميل وإلغاء تفعيل زر التوقف بعد الانتهاء
         download_button.config(state=tk.NORMAL, text="Download Videos")
         stop_button.config(state=tk.DISABLED)
     root.after(0, show_done)
     if stop_downloading:
         messagebox.showinfo("Download stopped", "Download process has been stopped.\nتم إيقاف عملية التحميل.")
+    elif download_errors:
+        messagebox.showerror("Download error", "Some videos failed to download. Please check the terminal for details.\nفشل تحميل بعض الفيديوهات. يرجى مراجعة التيرمينال للتفاصيل.")
     else:
         messagebox.showinfo("Upload completed", "All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.")
 
@@ -127,10 +160,12 @@ def start_download():
 
     # إعادة تعيين شريط التقدم وتفعيل التحميل
     progress_canvas.delete("all")
-    global progress_rect, stop_downloading
+    global progress_rect, stop_downloading, download_errors
     progress_rect = progress_canvas.create_rectangle(0, 0, 0, PROGRESS_BAR_HEIGHT, fill="green", width=0)
     update_progress(0)
     stop_downloading = False
+    download_errors = False  # إعادة تعيين متغير الأخطاء قبل بدء عملية التحميل
+
     # تعطيل زر التحميل وتغيير نصه وتفعيل زر التوقف
     download_button.config(state=tk.DISABLED, text="Downloading...")
     stop_button.config(state=tk.NORMAL)
