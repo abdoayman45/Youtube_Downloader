@@ -95,10 +95,10 @@ def download_all(urls):
         progress_canvas.delete("progress_text")
         if stop_downloading:
             progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                        text="Download Stopped.\nتم إيقاف التحميل.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+                                          text="Download Stopped.\nتم إيقاف التحميل.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
         else:
             progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                        text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+                                          text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
         # إعادة تفعيل زر التحميل وإلغاء تفعيل زر التوقف بعد الانتهاء
         download_button.config(state=tk.NORMAL, text="Download Videos")
         stop_button.config(state=tk.DISABLED)
@@ -156,44 +156,37 @@ def open_github():
 root = tk.Tk()
 root.title("Youtube Downloader")
 
-# تعليمات الإدخال
+# منطقة النص لإدخال الروابط وشريط التقدم
 label = tk.Label(root, text="Enter YouTube video links (link in each line):\nأدخل روابط فيديوهات يوتيوب (رابط في كل سطر):")
 label.pack(pady=5)
 
-# منطقة النص لإدخال الروابط
 text_area = scrolledtext.ScrolledText(root, width=60, height=20)
 text_area.pack(pady=5)
 
-# شريط التقدم (Canvas) تحت منطقة النص
 progress_canvas = tk.Canvas(root, width=PROGRESS_BAR_WIDTH, height=PROGRESS_BAR_HEIGHT, bg="lightgray")
 progress_canvas.pack(pady=5)
 progress_rect = progress_canvas.create_rectangle(0, 0, 0, PROGRESS_BAR_HEIGHT, fill="green", width=0)
 
-# إطار لتجميع الأزرار والنص في صف واحد
+# إطار علوي يحتوي على زري "Download Videos" و"Stop Download" في المنتصف
+top_button_frame = tk.Frame(root)
+top_button_frame.pack(pady=10)
+
+download_button = tk.Button(top_button_frame, text="Download Videos", command=start_download)
+download_button.grid(row=0, column=0, padx=5)
+
+stop_button = tk.Button(top_button_frame, text="Stop Download", command=stop_download, state=tk.DISABLED)
+stop_button.grid(row=0, column=1, padx=5)
+
+# إطار سفلي يحتوي على عبارة "Created by: Abdelrhaman" وزر "GITHUB" في المنتصف
 bottom_frame = tk.Frame(root)
-bottom_frame.pack(fill='x', padx=10, pady=10, ipady=10)
+bottom_frame.pack(pady=10)
 
-# نص "Created by: Abdelrhaman" في أقصى اليسار
-created_label = tk.Label(bottom_frame, text="Created by: Abdelrhaman")
-created_label.grid(row=0, column=0, sticky="w")
+created_label = tk.Label(bottom_frame, text="Created by: Abdelrhaman", font=("Helvetica", 10))
+created_label.pack()
 
-# زر تحميل الفيديوهات في الوسط
-download_button = tk.Button(bottom_frame, text="Download Videos", command=start_download)
-download_button.grid(row=0, column=1, padx=5)
-
-# زر إيقاف التحميل (مبدئيًا غير مفعل)
-stop_button = tk.Button(bottom_frame, text="Stop Download", command=stop_download, state=tk.DISABLED)
-stop_button.grid(row=0, column=2, padx=5)
-
-# زر GitHub
-github_button = tk.Button(bottom_frame, text="GITHUB", command=open_github, bg="#24292e", fg="white")
-github_button.grid(row=0, column=3, padx=5, sticky="e")
-
-# توزيع الأعمدة بشكل متساوٍ
-bottom_frame.grid_columnconfigure(0, weight=1)
-bottom_frame.grid_columnconfigure(1, weight=1)
-bottom_frame.grid_columnconfigure(2, weight=1)
-bottom_frame.grid_columnconfigure(3, weight=1)
+github_button = tk.Button(bottom_frame, text="GITHUB", command=open_github, 
+                          bg="#24292e", fg="white", font=("Helvetica", 12, "bold"), padx=10, pady=5)
+github_button.pack(pady=(5,0))
 
 # بدء الحلقة الرئيسية للواجهة
 root.mainloop()
