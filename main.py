@@ -149,13 +149,13 @@ def start_download():
     # إزالة الفراغات من كل سطر
     valid_urls = [url.strip() for url in urls if url.strip() != ""]
     if not valid_urls:
-        messagebox.showwarning("Attention!", "Please enter at least one link.")
+        messagebox.showwarning("Attention!", "من فضلك تأكد من ادخال لينك واحد علي الاقل\nPlease enter at least one link.")
         return
 
     # التحقق من أن كل رابط هو رابط يوتيوب
     for url in valid_urls:
         if "youtube.com" not in url and "youtu.be" not in url:
-            messagebox.showerror("Error", "يجب كتابة روابط يوتيوب فقط")
+            messagebox.showerror("Error", "يجب كتابة روابط يوتيوب فقط\nOnly YouTube links must be written.")
             return
 
     # إعادة تعيين شريط التقدم وتفعيل التحميل
