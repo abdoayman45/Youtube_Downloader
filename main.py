@@ -9,8 +9,9 @@ PROGRESS_BAR_WIDTH = 480
 PROGRESS_BAR_HEIGHT = 40  # حوالي 1 سم
 
 # متغيرات للتحكم في التحميل العام
-total_videos = 0  # عدد الفيديوهات الكلي
-current_video_index = 0  # رقم الفيديو الحالي (من 0)
+total_videos = 0           # عدد الفيديوهات الكلي
+current_video_index = 0    # رقم الفيديو الحالي (من 0)
+stop_downloading = False   # متغير لإيقاف التحميل عند الطلب
 
 def update_progress(overall_progress):
     """
@@ -34,6 +35,9 @@ def download_video_with_progress(url, video_index, total):
     total: العدد الكلي للفيديوهات
     """
     def progress_hook(d):
+        # التحقق من طلب الإيقاف أثناء التحميل
+        if stop_downloading:
+            raise Exception("StopDownload")
         if d['status'] == 'downloading':
             # الحصول على نسبة تحميل الفيديو الحالي
             total_bytes = d.get('total_bytes') or d.get('total_bytes_estimate')
@@ -56,14 +60,17 @@ def download_video_with_progress(url, video_index, total):
                       'AppleWebKit/537.36 (KHTML, like Gecko) '
                       'Chrome/115.0.0.0 Safari/537.36',    # يوزر اجينت لمحاكاة متصفح حقيقي 
         'progress_hooks': [progress_hook],
-        # لتعطيل الإخراج التفصيلي حتى لا يسبب تأخيرًا في التحديثات
         'quiet': True
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
     except Exception as e:
-        print(f"Error occurred while loading {url}: {str(e)}")
+        if str(e) == "StopDownload":
+            # إذا كان سبب الإيقاف من المستخدم فلا نقوم بإظهار رسالة خطأ
+            return
+        else:
+            print(f"Error occurred while loading {url}: {str(e)}")
 
 def download_all(urls):
     """
@@ -72,35 +79,64 @@ def download_all(urls):
     global total_videos
     total_videos = len(urls)
     for index, url in enumerate(urls):
+        if stop_downloading:
+            break
         clean_url = url.strip()
         if clean_url:
             print(f"Loading: {clean_url}")
-            download_video_with_progress(clean_url, index, total_videos)
-    # عند الانتهاء، عرض رسالة نهائية على الشريط
+            try:
+                download_video_with_progress(clean_url, index, total_videos)
+            except Exception as e:
+                if str(e) == "StopDownload":
+                    break
+                else:
+                    print(f"Error occurred while loading {clean_url}: {str(e)}")
     def show_done():
         progress_canvas.delete("progress_text")
-        progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
-                                    text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.",
-                                    fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+        if stop_downloading:
+            progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
+                                        text="Download Stopped.\nتم إيقاف التحميل.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
+        else:
+            progress_canvas.create_text(PROGRESS_BAR_WIDTH//2, PROGRESS_BAR_HEIGHT//2, 
+                                        text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.", fill="white", font=("Helvetica", 12, "bold"), tag="progress_text")
     root.after(0, show_done)
-    messagebox.showinfo("Upload completed", "All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.")
+    if stop_downloading:
+        messagebox.showinfo("Download stopped", "Download process has been stopped.\nتم إيقاف عملية التحميل.")
+    else:
+        messagebox.showinfo("Upload completed", "All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.")
 
 def start_download():
     """
     قراءة الروابط من واجهة المستخدم وبدء عملية التحميل في خيط منفصل.
     """
     urls = text_area.get("1.0", tk.END).splitlines()
-    valid_urls = [url for url in urls if url.strip() != ""]
+    # إزالة الفراغات من كل سطر
+    valid_urls = [url.strip() for url in urls if url.strip() != ""]
     if not valid_urls:
         messagebox.showwarning("Attention!", "Please enter at least one link.")
         return
-    # إعادة تعيين شريط التقدم
+
+    # التحقق من أن كل رابط هو رابط يوتيوب
+    for url in valid_urls:
+        if "youtube.com" not in url and "youtu.be" not in url:
+            messagebox.showerror("Error", "يجب كتابة روابط يوتيوب فقط")
+            return
+
+    # إعادة تعيين شريط التقدم وتفعيل التحميل
     progress_canvas.delete("all")
-    global progress_rect
+    global progress_rect, stop_downloading
     progress_rect = progress_canvas.create_rectangle(0, 0, 0, PROGRESS_BAR_HEIGHT, fill="green", width=0)
     update_progress(0)
+    stop_downloading = False
     # بدء التحميل في خيط منفصل
     threading.Thread(target=download_all, args=(valid_urls,), daemon=True).start()
+
+def stop_download():
+    """
+    دالة لتعيين متغير الإيقاف بحيث يتم وقف التحميل.
+    """
+    global stop_downloading
+    stop_downloading = True
 
 def open_github():
     """
@@ -135,16 +171,21 @@ created_label.grid(row=0, column=0, sticky="w")
 
 # زر تحميل الفيديوهات في الوسط
 download_button = tk.Button(bottom_frame, text="Download Videos", command=start_download)
-download_button.grid(row=0, column=1)
+download_button.grid(row=0, column=1, padx=5)
+
+# زر إيقاف التحميل
+stop_button = tk.Button(bottom_frame, text="Stop Download", command=stop_download)
+stop_button.grid(row=0, column=2, padx=5)
 
 # زر GitHub
 github_button = tk.Button(bottom_frame, text="GITHUB", command=open_github, bg="#24292e", fg="white")
-github_button.grid(row=0, column=2, sticky="e")
+github_button.grid(row=0, column=3, padx=5, sticky="e")
 
 # توزيع الأعمدة بشكل متساوٍ
 bottom_frame.grid_columnconfigure(0, weight=1)
 bottom_frame.grid_columnconfigure(1, weight=1)
 bottom_frame.grid_columnconfigure(2, weight=1)
+bottom_frame.grid_columnconfigure(3, weight=1)
 
 # بدء الحلقة الرئيسية للواجهة
 root.mainloop()
