@@ -125,7 +125,7 @@ def download_all(urls):
             progress_canvas.create_text(
                 PROGRESS_BAR_WIDTH // 2,
                 PROGRESS_BAR_HEIGHT // 2, 
-                text="All videos were successfully uploaded.\nتم تحميل جميع الفيديوهات بنجاح.",
+                text="All videos were successfully Downloaded.\nتم تحميل جميع الفيديوهات بنجاح.",
                 fill="white",
                 font=("Helvetica", 12, "bold"),
                 tag="progress_text"
