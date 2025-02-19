@@ -59,12 +59,24 @@ def download_video_with_progress(url, video_index, total):
             overall = (video_index + 1) / total
             root.after(0, update_progress, overall)
 
+    # اختيار الجودة بناءً على اختيار المستخدم
+    quality_choice = quality_var.get()  # قراءة خيار الجودة من الواجهة
+    if quality_choice == "Low Quality":
+        format_value = 'worstvideo+worstaudio/worst'
+    elif quality_choice == "Medium Quality":
+        # تحديد جودة متوسطة (مثلاً حتى 720p)
+        format_value = 'bestvideo[height<=720]+bestaudio/best[height<=720]'
+    else:  # High Quality
+        format_value = 'bestvideo+bestaudio/best'
+
+    # نستخدم outtmpl لتكوين اسم الملف بحيث يتضمن معرف الصيغة (format_id)
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',          # تحميل أفضل فيديو مع أفضل صوت ودمجهما
-        'merge_output_format': 'mp4',                   # صيغة الدمج الناتجة
+        'format': format_value,
+        'merge_output_format': 'mp4',
+        'outtmpl': '%(title)s [%(format_id)s].%(ext)s',  # تضمين معرف الصيغة في اسم الملف
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
                       'AppleWebKit/537.36 (KHTML, like Gecko) '
-                      'Chrome/115.0.0.0 Safari/537.36',    # يوزر اجينت لمحاكاة متصفح حقيقي 
+                      'Chrome/115.0.0.0 Safari/537.36',
         'progress_hooks': [progress_hook],
         'quiet': True
     }
@@ -73,7 +85,6 @@ def download_video_with_progress(url, video_index, total):
             ydl.download([url])
     except Exception as e:
         if str(e) == "StopDownload":
-            # إذا كان سبب الإيقاف من المستخدم فلا نقوم بإظهار رسالة خطأ
             return
         else:
             global download_errors
@@ -130,7 +141,6 @@ def download_all(urls):
                 font=("Helvetica", 12, "bold"),
                 tag="progress_text"
             )
-        # إعادة تفعيل زر التحميل وإلغاء تفعيل زر التوقف بعد الانتهاء
         download_button.config(state=tk.NORMAL, text="Download Videos")
         stop_button.config(state=tk.DISABLED)
     root.after(0, show_done)
@@ -146,30 +156,25 @@ def start_download():
     قراءة الروابط من واجهة المستخدم وبدء عملية التحميل في خيط منفصل.
     """
     urls = text_area.get("1.0", tk.END).splitlines()
-    # إزالة الفراغات من كل سطر
     valid_urls = [url.strip() for url in urls if url.strip() != ""]
     if not valid_urls:
         messagebox.showwarning("Attention!", "من فضلك تأكد من ادخال لينك واحد علي الاقل\nPlease enter at least one link.")
         return
 
-    # التحقق من أن كل رابط هو رابط يوتيوب
     for url in valid_urls:
         if "youtube.com" not in url and "youtu.be" not in url:
             messagebox.showerror("Error", "يجب كتابة روابط يوتيوب فقط\nOnly YouTube links must be written.")
             return
 
-    # إعادة تعيين شريط التقدم وتفعيل التحميل
     progress_canvas.delete("all")
     global progress_rect, stop_downloading, download_errors
     progress_rect = progress_canvas.create_rectangle(0, 0, 0, PROGRESS_BAR_HEIGHT, fill="green", width=0)
     update_progress(0)
     stop_downloading = False
-    download_errors = False  # إعادة تعيين متغير الأخطاء قبل بدء عملية التحميل
+    download_errors = False
 
-    # تعطيل زر التحميل وتغيير نصه وتفعيل زر التوقف
     download_button.config(state=tk.DISABLED, text="Downloading...")
     stop_button.config(state=tk.NORMAL)
-    # بدء التحميل في خيط منفصل
     threading.Thread(target=download_all, args=(valid_urls,), daemon=True).start()
 
 def stop_download():
@@ -178,7 +183,6 @@ def stop_download():
     """
     global stop_downloading
     stop_downloading = True
-    # تعطيل زر التوقف عند الضغط عليه
     stop_button.config(state=tk.DISABLED)
 
 def open_github():
@@ -192,11 +196,24 @@ root = tk.Tk()
 root.title("Youtube Downloader")
 
 # منطقة النص لإدخال الروابط وشريط التقدم
-label = tk.Label(root, text="Enter YouTube video links (link in each line):\nأدخل روابط فيديوهات يوتيوب (رابط في كل سطر):")
+label = tk.Label(root, text="أدخل روابط فيديوهات يوتيوب (رابط في كل سطر):\nEnter YouTube video links (link in each line):")
 label.pack(pady=5)
 
 text_area = scrolledtext.ScrolledText(root, width=60, height=20)
 text_area.pack(pady=5)
+
+# إطار لاختيار الجودة
+quality_frame = tk.Frame(root)
+quality_frame.pack(pady=5)
+
+quality_label = tk.Label(quality_frame, text="Select Quality / اختر الجودة:")
+quality_label.pack(side=tk.LEFT, padx=5)
+
+quality_var = tk.StringVar(root)
+quality_var.set("High Quality")  # الافتراضي: جودة عالية
+quality_menu = tk.OptionMenu(quality_frame, quality_var, "Low Quality", "Medium Quality", "High Quality")
+quality_menu.config(bg='lightblue', fg='black')
+quality_menu.pack(side=tk.LEFT)
 
 progress_canvas = tk.Canvas(root, width=PROGRESS_BAR_WIDTH, height=PROGRESS_BAR_HEIGHT, bg="lightgray")
 progress_canvas.pack(pady=5)
@@ -223,5 +240,4 @@ github_button = tk.Button(bottom_frame, text="GITHUB", command=open_github,
                           bg="#24292e", fg="white", font=("Helvetica", 12, "bold"), padx=10, pady=5)
 github_button.pack(pady=(5,0))
 
-# بدء الحلقة الرئيسية للواجهة
 root.mainloop()
